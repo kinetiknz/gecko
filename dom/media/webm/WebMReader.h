@@ -18,14 +18,6 @@
 
 #include "mozilla/layers/LayersTypes.h"
 
-#ifdef MOZ_TREMOR
-#include "tremor/ivorbiscodec.h"
-#else
-#include "vorbis/codec.h"
-#endif
-
-#include "OpusParser.h"
-
 // Holds a nestegg_packet, and its file offset. This is needed so we
 // know the offset in the file we've played up to, in order to calculate
 // whether it's likely we can play through to the end without needing
@@ -124,6 +116,21 @@ public:
   virtual ~WebMVideoDecoder() {}
 };
 
+// Class to handle various audio decode paths
+class WebMAudioDecoder
+{
+public:
+  virtual nsresult Init() = 0;
+  virtual void Shutdown() = 0;
+  virtual nsresult ResetDecode() = 0;
+  virtual nsresult DecodeHeader(const unsigned char* aData, size_t aLength) = 0;
+  virtual nsresult FinishInit(AudioInfo& aInfo) = 0;
+  virtual bool Decode(const unsigned char* aData, size_t aLength,
+                      int64_t aOffset, uint64_t aTstampUsecs,
+                      int32_t* aTotalFrames, nestegg_packet* aPacket) = 0;
+  virtual ~WebMAudioDecoder() {}
+};
+
 class WebMReader : public MediaDecoderReader
 {
 public:
@@ -187,11 +194,10 @@ public:
   void SetLastVideoFrameTime(uint64_t aFrameTime);
   layers::LayersBackend GetLayersBackendType() { return mLayersBackendType; }
   MediaTaskQueue* GetVideoTaskQueue() { return mVideoTaskQueue; }
+  uint64_t GetCodecDelay() { return mCodecDelay; }
+  void AudioDecodeError() { mHitAudioDecodeError = true; }
 
 protected:
-  // Setup opus decoder
-  bool InitOpusDecoder();
-
   // Decode a nestegg packet of audio data. Push the audio data on the
   // audio queue. Returns true when there's more audio to decode,
   // false if the audio is finished, end of file has been reached,
@@ -199,12 +205,6 @@ protected:
   // must be held during this call. The caller is responsible for freeing
   // aPacket.
   bool DecodeAudioPacket(nestegg_packet* aPacket, int64_t aOffset);
-  bool DecodeVorbis(const unsigned char* aData, size_t aLength,
-                    int64_t aOffset, uint64_t aTstampUsecs,
-                    int32_t* aTotalFrames);
-  bool DecodeOpus(const unsigned char* aData, size_t aLength,
-                  int64_t aOffset, uint64_t aTstampUsecs,
-                  nestegg_packet* aPacket);
 
   // Release context and set to null. Called when an error occurs during
   // reading metadata or destruction of the reader itself.
@@ -220,21 +220,8 @@ private:
   // or decoder thread only.
   nestegg* mContext;
 
-  // The video decoder
+  nsAutoPtr<WebMAudioDecoder> mAudioDecoder;
   nsAutoPtr<WebMVideoDecoder> mVideoDecoder;
-
-  // Vorbis decoder state
-  vorbis_info mVorbisInfo;
-  vorbis_comment mVorbisComment;
-  vorbis_dsp_state mVorbisDsp;
-  vorbis_block mVorbisBlock;
-  int64_t mPacketCount;
-
-  // Opus decoder state
-  nsAutoPtr<OpusParser> mOpusParser;
-  OpusMSDecoder *mOpusDecoder;
-  uint16_t mSkip;        // Samples left to trim before playback.
-  uint64_t mSeekPreroll; // Nanoseconds to discard after seeking.
 
   // Queue of video and audio packets that have been read but not decoded. These
   // must only be accessed from the state machine thread.
@@ -253,6 +240,8 @@ private:
 
   // Number of microseconds that must be discarded from the start of the Stream.
   uint64_t mCodecDelay;
+
+  uint64_t mSeekPreroll; // Nanoseconds to discard after seeking.
 
   // Calculate the frame duration from the last decodeable frame using the
   // previous frame's timestamp.  In NS.
@@ -282,11 +271,6 @@ private:
   // Booleans to indicate if we have audio and/or video data
   bool mHasVideo;
   bool mHasAudio;
-
-  // Opus padding should only be discarded on the final packet.  Once this
-  // is set to true, if the reader attempts to decode any further packets it
-  // will raise an error so we can indicate that the file is invalid.
-  bool mPaddingDiscarded;
 };
 
 } // namespace mozilla
