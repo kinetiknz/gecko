@@ -118,6 +118,7 @@ AudioCallbackAdapter::Terminated()
 {
   NS_WARNING("AAC GMP decoder terminated.");
   mCallback->Error();
+  mDecoder->Shutdown();
 }
 
 void

@@ -16,8 +16,9 @@ namespace mozilla {
 
 class AudioCallbackAdapter : public GMPAudioDecoderCallbackProxy {
 public:
-  explicit AudioCallbackAdapter(MediaDataDecoderCallbackProxy* aCallback)
+  AudioCallbackAdapter(MediaDataDecoderCallbackProxy* aCallback, MediaDataDecoder* aDecoder)
    : mCallback(aCallback)
+   , mDecoder(aDecoder)
    , mLastStreamOffset(0)
    , mAudioFrameSum(0)
    , mAudioFrameOffset(0)
@@ -38,6 +39,7 @@ public:
 
 private:
   MediaDataDecoderCallbackProxy* mCallback;
+  nsRefPtr<MediaDataDecoder> mDecoder;
   int64_t mLastStreamOffset;
 
   int64_t mAudioFrameSum;
@@ -62,7 +64,7 @@ public:
   GMPAudioDecoder(const mp4_demuxer::AudioDecoderConfig& aConfig,
                   MediaTaskQueue* aTaskQueue,
                   MediaDataDecoderCallbackProxy* aCallback)
-   : GMPAudioDecoder(aConfig, aTaskQueue, aCallback, new AudioCallbackAdapter(aCallback))
+   : GMPAudioDecoder(aConfig, aTaskQueue, aCallback, new AudioCallbackAdapter(aCallback, this))
   {
   }
 

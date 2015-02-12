@@ -96,9 +96,9 @@ VideoCallbackAdapter::Error(GMPErr aErr)
 void
 VideoCallbackAdapter::Terminated()
 {
-  // Note that this *may* be called from the proxy thread also.
   NS_WARNING("H.264 GMP decoder terminated.");
   mCallback->Error();
+  mDecoder->Shutdown();
 }
 
 void

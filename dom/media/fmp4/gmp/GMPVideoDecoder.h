@@ -19,9 +19,11 @@ namespace mozilla {
 class VideoCallbackAdapter : public GMPVideoDecoderCallbackProxy {
 public:
   VideoCallbackAdapter(MediaDataDecoderCallbackProxy* aCallback,
+                       MediaDataDecoder* aDecoder,
                        VideoInfo aVideoInfo,
                        layers::ImageContainer* aImageContainer)
    : mCallback(aCallback)
+   , mDecoder(aDecoder)
    , mLastStreamOffset(0)
    , mVideoInfo(aVideoInfo)
    , mImageContainer(aImageContainer)
@@ -43,6 +45,7 @@ public:
 
 private:
   MediaDataDecoderCallbackProxy* mCallback;
+  nsRefPtr<MediaDataDecoder> mDecoder;
   int64_t mLastStreamOffset;
 
   VideoInfo mVideoInfo;
@@ -73,6 +76,7 @@ public:
                   MediaDataDecoderCallbackProxy* aCallback)
    : GMPVideoDecoder(aConfig, aLayersBackend, aImageContainer, aTaskQueue, aCallback,
                      new VideoCallbackAdapter(aCallback,
+                                              this,
                                               VideoInfo(aConfig.display_width,
                                                         aConfig.display_height),
                                               aImageContainer))

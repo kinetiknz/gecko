@@ -9,13 +9,6 @@
 namespace mozilla {
 
 void
-MediaDataDecoderCallbackProxy::Error()
-{
-  mProxyCallback->Error();
-  mProxyDecoder->Shutdown();
-}
-
-void
 MediaDataDecoderCallbackProxy::FlushComplete()
 {
   mProxyDecoder->FlushComplete();

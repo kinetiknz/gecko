@@ -14,8 +14,8 @@ namespace mozilla {
 
 class EMEAudioCallbackAdapter : public AudioCallbackAdapter {
 public:
-  explicit EMEAudioCallbackAdapter(MediaDataDecoderCallbackProxy* aCallback)
-   : AudioCallbackAdapter(aCallback)
+  explicit EMEAudioCallbackAdapter(MediaDataDecoderCallbackProxy* aCallback, MediaDataDecoder* aDecoder)
+   : AudioCallbackAdapter(aCallback, aDecoder)
   {}
 
   virtual void Error(GMPErr aErr) MOZ_OVERRIDE;
@@ -27,7 +27,7 @@ public:
                   const mp4_demuxer::AudioDecoderConfig& aConfig,
                   MediaTaskQueue* aTaskQueue,
                   MediaDataDecoderCallbackProxy* aCallback)
-   : GMPAudioDecoder(aConfig, aTaskQueue, aCallback, new EMEAudioCallbackAdapter(aCallback))
+   : GMPAudioDecoder(aConfig, aTaskQueue, aCallback, new EMEAudioCallbackAdapter(aCallback, this))
    , mProxy(aProxy)
   {
   }

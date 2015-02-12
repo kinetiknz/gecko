@@ -18,9 +18,10 @@ class MediaTaskQueue;
 class EMEVideoCallbackAdapter : public VideoCallbackAdapter {
 public:
   EMEVideoCallbackAdapter(MediaDataDecoderCallbackProxy* aCallback,
+                          MediaDataDecoder* aDecoder,
                           VideoInfo aVideoInfo,
                           layers::ImageContainer* aImageContainer)
-   : VideoCallbackAdapter(aCallback, aVideoInfo, aImageContainer)
+   : VideoCallbackAdapter(aCallback, aDecoder, aVideoInfo, aImageContainer)
   {}
 
   virtual void Error(GMPErr aErr) MOZ_OVERRIDE;
@@ -35,8 +36,11 @@ public:
                   MediaTaskQueue* aTaskQueue,
                   MediaDataDecoderCallbackProxy* aCallback)
    : GMPVideoDecoder(aConfig, aLayersBackend, aImageContainer, aTaskQueue, aCallback,
-                     new EMEVideoCallbackAdapter(aCallback, VideoInfo(aConfig.display_width,
-                                                                      aConfig.display_height), aImageContainer))
+                     new EMEVideoCallbackAdapter(aCallback,
+                                                 this,
+                                                 VideoInfo(aConfig.display_width,
+                                                           aConfig.display_height),
+                                                 aImageContainer))
    , mProxy(aProxy)
   {
   }

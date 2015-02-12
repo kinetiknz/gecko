@@ -98,7 +98,9 @@ public:
     mProxyCallback->Output(aData);
   }
 
-  virtual void Error() MOZ_OVERRIDE;
+  virtual void Error() MOZ_OVERRIDE {
+    mProxyCallback->Error();
+  }
 
   virtual void InputExhausted() MOZ_OVERRIDE {
     mProxyCallback->InputExhausted();
