@@ -45,7 +45,7 @@ public:
 
 private:
   MediaDataDecoderCallbackProxy* mCallback;
-  nsRefPtr<MediaDataDecoder> mDecoder;
+  MediaDataDecoder* mDecoder;
   int64_t mLastStreamOffset;
 
   VideoInfo mVideoInfo;

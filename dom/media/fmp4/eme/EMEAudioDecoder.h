@@ -14,7 +14,7 @@ namespace mozilla {
 
 class EMEAudioCallbackAdapter : public AudioCallbackAdapter {
 public:
-  explicit EMEAudioCallbackAdapter(MediaDataDecoderCallbackProxy* aCallback, MediaDataDecoder* aDecoder)
+  EMEAudioCallbackAdapter(MediaDataDecoderCallbackProxy* aCallback, MediaDataDecoder* aDecoder)
    : AudioCallbackAdapter(aCallback, aDecoder)
   {}
 

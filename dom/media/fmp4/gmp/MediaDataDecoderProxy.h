@@ -88,7 +88,7 @@ class MediaDataDecoderProxy;
 
 class MediaDataDecoderCallbackProxy : public MediaDataDecoderCallback {
 public:
-  explicit MediaDataDecoderCallbackProxy(MediaDataDecoderProxy* aProxyDecoder, MediaDataDecoderCallback* aCallback)
+  MediaDataDecoderCallbackProxy(MediaDataDecoderProxy* aProxyDecoder, MediaDataDecoderCallback* aCallback)
    : mProxyDecoder(aProxyDecoder)
    , mProxyCallback(aCallback)
   {

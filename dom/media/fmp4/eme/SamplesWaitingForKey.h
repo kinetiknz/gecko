@@ -25,9 +25,9 @@ public:
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(SamplesWaitingForKey)
 
-  explicit SamplesWaitingForKey(MediaDataDecoder* aDecoder,
-                                MediaTaskQueue* aTaskQueue,
-                                CDMProxy* aProxy);
+  SamplesWaitingForKey(MediaDataDecoder* aDecoder,
+                       MediaTaskQueue* aTaskQueue,
+                       CDMProxy* aProxy);
 
   // Returns true if we need to wait for a key to become usable.
   // Will callback MediaDataDecoder::Input(aSample) on mDecoder once the
