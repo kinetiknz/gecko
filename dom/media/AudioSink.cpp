@@ -245,11 +245,13 @@ AudioSink::Drain()
 void
 AudioSink::Cleanup()
 {
-  // Must hold lock while shutting down and anulling the audio stream to prevent
-  // state machine thread trying to use it while we're destroying it.
   AssertCurrentThreadInMonitor();
-  mAudioStream->Shutdown();
-  mAudioStream = nullptr;
+  nsRefPtr<AudioStream> audioStream;
+  audioStream.swap(mAudioStream);
+  {
+    ReentrantMonitorAutoExit exit(GetReentrantMonitor());
+    audioStream->Shutdown();
+  }
   mStateMachine->OnAudioSinkComplete();
 }
 
