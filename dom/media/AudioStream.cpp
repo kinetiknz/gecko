@@ -142,6 +142,7 @@ AudioStream::AudioStream()
   , mShouldDropFrames(false)
   , mPendingAudioInitTask(false)
   , mLastGoodPosition(0)
+  , mStartStopCount(0)
 {
   // keep a ref in case we shut down later than nsLayoutStatics
   mLatencyLog = AsyncLatencyLogger::Get(true);
@@ -749,6 +750,10 @@ AudioStream::StartUnlocked()
 
       PanOutputIfNeeded(mMicrophoneActive);
     }
+    mStartStopCount += 1;
+    if (mStartStopCount > 1) {
+      fprintf(stderr, "** cubeb stream started more than once **\n");
+    }
     mState = r == CUBEB_OK ? STARTED : ERRORED;
     LOG(("AudioStream: started %p, state %s", this, mState == STARTED ? "STARTED" : "ERRORED"));
   }
@@ -774,6 +779,7 @@ AudioStream::Pause()
     MonitorAutoUnlock mon(mMonitor);
     r = cubeb_stream_stop(mCubebStream.get());
   }
+  mStartStopCount -= 1;
   if (mState != ERRORED && r == CUBEB_OK) {
     mState = STOPPED;
   }
@@ -791,6 +797,10 @@ AudioStream::Resume()
   {
     MonitorAutoUnlock mon(mMonitor);
     r = cubeb_stream_start(mCubebStream.get());
+  }
+  mStartStopCount += 1;
+  if (mStartStopCount > 1) {
+    fprintf(stderr, "** cubeb stream started more than once **\n");
   }
   if (mState != ERRORED && r == CUBEB_OK) {
     mState = STARTED;
@@ -815,6 +825,7 @@ AudioStream::Shutdown()
     // call our callback after Pause()/stop()!?! Bug 996162
     mCubebStream.reset();
   }
+  mStartStopCount -= 1;
 
   mState = SHUTDOWN;
 }

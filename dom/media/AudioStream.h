@@ -403,6 +403,8 @@ private:
   // The last good position returned by cubeb_stream_get_position(). Used to
   // check if the cubeb position is going backward.
   uint64_t mLastGoodPosition;
+
+  int32_t mStartStopCount;
 };
 
 class AudioInitTask : public nsRunnable
