@@ -38,7 +38,12 @@ class MP4Reader final : public MediaDecoderReader
   typedef TrackInfo::TrackType TrackType;
 
 public:
-  explicit MP4Reader(AbstractMediaDecoder* aDecoder);
+  static MP4Reader* CreateMP4Reader(AbstractMediaDecoder* aDecoder) { return new MP4Reader(aDecoder); }
+  static MP4Reader* CreateMP3Reader(AbstractMediaDecoder* aDecoder) {
+    MP4Reader* reader = new MP4Reader(aDecoder);
+    reader->mMP3Mode = true;
+    return reader;
+  }
 
   virtual ~MP4Reader();
 
@@ -88,6 +93,7 @@ public:
   virtual void DisableHardwareAcceleration() override;
 
 private:
+  explicit MP4Reader(AbstractMediaDecoder* aDecoder);
 
   bool InitDemuxer();
   void ReturnOutput(MediaData* aData, TrackType aTrack);
@@ -286,6 +292,8 @@ private:
 #if defined(MP4_READER_DORMANT_HEURISTIC)
   const bool mDormantEnabled;
 #endif
+
+  bool mMP3Mode;
 };
 
 } // namespace mozilla

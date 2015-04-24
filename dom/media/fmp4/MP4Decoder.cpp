@@ -34,7 +34,7 @@ namespace mozilla {
 
 MediaDecoderStateMachine* MP4Decoder::CreateStateMachine()
 {
-  return new MediaDecoderStateMachine(this, new MP4Reader(this));
+  return new MediaDecoderStateMachine(this, MP4Reader::CreateMP4Reader(this));
 }
 
 #ifdef MOZ_EME

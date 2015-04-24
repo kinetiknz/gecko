@@ -43,12 +43,12 @@ public:
   already_AddRefed<mozilla::MediaRawData> DemuxAudioSample() { return nullptr; }
   already_AddRefed<mozilla::MediaRawData> DemuxVideoSample() { return nullptr; }
 
-  const CryptoFile& Crypto() { return mCrypto; }
-  const mozilla::AudioInfo& AudioConfig() {
+  const CryptoFile& Crypto() const { return mCrypto; }
+  const mozilla::AudioInfo& AudioConfig() const {
     mTrackDemuxer->UpdateConfig(mAudioConfig);
     return mAudioConfig;
   }
-  const mozilla::VideoInfo& VideoConfig() { return mVideoConfig; }
+  const mozilla::VideoInfo& VideoConfig() const { return mVideoConfig; }
 
   void UpdateIndex(const nsTArray<mozilla::MediaByteRange>& aByteRanges) {}
 
@@ -67,7 +67,7 @@ public:
 private:
   ~MP3LegacyDemuxer() {};
 
-  mozilla::AudioInfo mAudioConfig;
+  mutable mozilla::AudioInfo mAudioConfig;
   mozilla::VideoInfo mVideoConfig;
   CryptoFile mCrypto;
 };

@@ -60,6 +60,7 @@ EXPORTS.mp4_demuxer += [
     'binding/include/mp4_demuxer/Index.h',
     'binding/include/mp4_demuxer/Interval.h',
     'binding/include/mp4_demuxer/MoofParser.h',
+    'binding/include/mp4_demuxer/MP3LegacyDemuxer.h',
     'binding/include/mp4_demuxer/MP3TrackDemuxer.h',
     'binding/include/mp4_demuxer/mp4_demuxer.h',
     'binding/include/mp4_demuxer/MP4Metadata.h',

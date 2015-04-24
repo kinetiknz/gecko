@@ -693,7 +693,7 @@ CreateReaderForType(const nsACString& aType, AbstractMediaDecoder* aDecoder)
   if ((aType.LowerCaseEqualsLiteral("video/mp4") ||
        aType.LowerCaseEqualsLiteral("audio/mp4")) &&
       MP4Decoder::IsEnabled() && aDecoder) {
-    return new MP4Reader(aDecoder);
+    return MP4Reader::CreateMP4Reader(aDecoder);
   }
 #endif
   return DecoderTraits::CreateReader(aType, aDecoder);

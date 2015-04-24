@@ -30,39 +30,39 @@ public:
 
   explicit MP4Demuxer(Stream* aSource, Monitor* aMonitor);
 
-  bool Init();
-  Microseconds Duration();
-  bool CanSeek();
+  virtual bool Init();
+  virtual Microseconds Duration();
+  virtual bool CanSeek();
 
-  bool HasValidAudio();
-  bool HasValidVideo();
+  virtual bool HasValidAudio();
+  virtual bool HasValidVideo();
 
-  void SeekAudio(Microseconds aTime);
-  void SeekVideo(Microseconds aTime);
+  virtual void SeekAudio(Microseconds aTime);
+  virtual void SeekVideo(Microseconds aTime);
 
   // DemuxAudioSample and DemuxVideoSample functions
   // return nullptr on end of stream or error.
-  already_AddRefed<mozilla::MediaRawData> DemuxAudioSample();
-  already_AddRefed<mozilla::MediaRawData> DemuxVideoSample();
+  virtual already_AddRefed<mozilla::MediaRawData> DemuxAudioSample();
+  virtual already_AddRefed<mozilla::MediaRawData> DemuxVideoSample();
 
-  const CryptoFile& Crypto() const;
-  const mozilla::AudioInfo& AudioConfig() const { return *mAudioConfig->GetAsAudioInfo(); }
-  const mozilla::VideoInfo& VideoConfig() const { return *mVideoConfig->GetAsVideoInfo(); }
+  virtual const CryptoFile& Crypto() const;
+  virtual const mozilla::AudioInfo& AudioConfig() const { return *mAudioConfig->GetAsAudioInfo(); }
+  virtual const mozilla::VideoInfo& VideoConfig() const { return *mVideoConfig->GetAsVideoInfo(); }
 
-  void UpdateIndex(const nsTArray<mozilla::MediaByteRange>& aByteRanges);
+  virtual void UpdateIndex(const nsTArray<mozilla::MediaByteRange>& aByteRanges);
 
-  void ConvertByteRangesToTime(
+  virtual void ConvertByteRangesToTime(
     const nsTArray<mozilla::MediaByteRange>& aByteRanges,
     nsTArray<Interval<Microseconds>>* aIntervals);
 
-  int64_t GetEvictionOffset(Microseconds aTime);
+  virtual int64_t GetEvictionOffset(Microseconds aTime);
 
   // Returns timestamp of next keyframe, or -1 if demuxer can't
   // report this.
-  Microseconds GetNextKeyframeTime();
+  virtual Microseconds GetNextKeyframeTime();
 
 protected:
-  ~MP4Demuxer();
+  virtual ~MP4Demuxer();
 
 private:
   mozilla::UniquePtr<mozilla::TrackInfo> mAudioConfig;

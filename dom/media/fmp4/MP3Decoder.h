@@ -1,0 +1,33 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+#if !defined(MP3Decoder_h_)
+#define MP3Decoder_h_
+
+#include "MediaDecoder.h"
+
+namespace mozilla {
+
+// Decoder that uses a bundled MP3 demuxer and platform decoders to play MP3.
+class MP3Decoder : public MediaDecoder
+{
+public:
+  virtual MediaDecoder* Clone() override {
+    if (!IsEnabled()) {
+      return nullptr;
+    }
+    return new MP3Decoder();
+  }
+
+  virtual MediaDecoderStateMachine* CreateStateMachine() override;
+
+  // Returns true if the MP3 backend is preffed on, and we're running on a
+  // platform that is likely to have decoders for the format.
+  static bool IsEnabled();
+};
+
+} // namespace mozilla
+
+#endif

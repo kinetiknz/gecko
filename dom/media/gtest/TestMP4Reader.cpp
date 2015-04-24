@@ -27,7 +27,7 @@ public:
   explicit TestBinding(const char* aFileName = "gizmo.mp4")
     : decoder(new MP4Decoder())
     , resource(new MockMediaResource(aFileName))
-    , reader(new MP4Reader(decoder))
+    , reader(MP4Reader::CreateMP4Reader(decoder))
   {
     EXPECT_EQ(NS_OK, Preferences::SetBool(
                        "media.fragmented-mp4.use-blank-decoder", true));

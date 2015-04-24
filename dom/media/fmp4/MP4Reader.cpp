@@ -23,6 +23,7 @@
 #include "mp4_demuxer/H264.h"
 #include "SharedDecoderManager.h"
 #include "mp4_demuxer/MP4TrackDemuxer.h"
+#include "mp4_demuxer/MP3LegacyDemuxer.h"
 #include <algorithm>
 
 #ifdef MOZ_EME
@@ -166,6 +167,7 @@ MP4Reader::MP4Reader(AbstractMediaDecoder* aDecoder)
 #if defined(MP4_READER_DORMANT_HEURISTIC)
   , mDormantEnabled(Preferences::GetBool("media.decoder.heuristic.dormant.enabled", false))
 #endif
+  , mMP3Mode(false)
 {
   MOZ_ASSERT(NS_IsMainThread(), "Must be on main thread.");
   MOZ_COUNT_CTOR(MP4Reader);
@@ -357,7 +359,11 @@ MP4Reader::IsSupportedVideoMimeType(const nsACString& aMimeType)
 bool
 MP4Reader::InitDemuxer()
 {
-  mDemuxer = new MP4Demuxer(mStream, &mDemuxerMonitor);
+  if (mMP3Mode) {
+    mDemuxer = new MP3LegacyDemuxer(mStream);
+  } else {
+    mDemuxer = new MP4Demuxer(mStream, &mDemuxerMonitor);
+  }
   return mDemuxer->Init();
 }
 
@@ -379,7 +385,11 @@ MP4Reader::ReadMetadata(MediaInfo* aInfo,
 
     mAudio.mActive = mDemuxer->HasValidAudio();
     if (mAudio.mActive) {
-      mAudio.mTrackDemuxer = new MP4AudioDemuxer(mDemuxer);
+      if (mMP3Mode) {
+        mAudio.mTrackDemuxer = static_cast<MP3LegacyDemuxer*>(mDemuxer.get())->mTrackDemuxer;
+      } else {
+        mAudio.mTrackDemuxer = new MP4AudioDemuxer(mDemuxer);
+      }
     }
     mCrypto = mDemuxer->Crypto();
 

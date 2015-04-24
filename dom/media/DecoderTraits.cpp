@@ -71,6 +71,7 @@
 #ifdef MOZ_FMP4
 #include "MP4Reader.h"
 #include "MP4Decoder.h"
+#include "MP3Decoder.h"
 #endif
 
 namespace mozilla
@@ -355,6 +356,13 @@ IsMP4SupportedType(const nsACString& aType,
   return Preferences::GetBool("media.fragmented-mp4.exposed", false) &&
          MP4Decoder::CanHandleMediaType(aType, aCodecs, haveAAC, haveH264, haveMP3);
 }
+
+static bool
+IsMP3SupportedType(const nsACString& aType,
+                   const nsAString& aCodecs = EmptyString())
+{
+  return aType.EqualsASCII("audio/mpeg") && MP3Decoder::IsEnabled();
+}
 #endif
 
 #ifdef MOZ_APPLEMEDIA
@@ -438,6 +446,10 @@ DecoderTraits::CanHandleMediaType(const char* aMIMEType,
 #endif
 #ifdef MOZ_FMP4
   if (IsMP4SupportedType(nsDependentCString(aMIMEType),
+                                     aRequestedCodecs)) {
+    return aHaveRequestedCodecs ? CANPLAY_YES : CANPLAY_MAYBE;
+  }
+  if (IsMP3SupportedType(nsDependentCString(aMIMEType),
                                      aRequestedCodecs)) {
     return aHaveRequestedCodecs ? CANPLAY_YES : CANPLAY_MAYBE;
   }
@@ -533,6 +545,10 @@ InstantiateDecoder(const nsACString& aType, MediaDecoderOwner* aOwner)
 #ifdef MOZ_FMP4
   if (IsMP4SupportedType(aType)) {
     decoder = new MP4Decoder();
+    return decoder.forget();
+  }
+  if (IsMP3SupportedType(aType)) {
+    decoder = new MP3Decoder();
     return decoder.forget();
   }
 #endif
@@ -659,7 +675,9 @@ MediaDecoderReader* DecoderTraits::CreateReader(const nsACString& aType, Abstrac
   }
 #ifdef MOZ_FMP4
   if (IsMP4SupportedType(aType)) {
-    decoderReader = new MP4Reader(aDecoder);
+    decoderReader = MP4Reader::CreateMP4Reader(aDecoder);
+  } else if (IsMP3SupportedType(aType)) {
+    decoderReader = MP4Reader::CreateMP3Reader(aDecoder);
   } else
 #endif
 #ifdef MOZ_GSTREAMER
@@ -754,7 +772,7 @@ bool DecoderTraits::IsSupportedInVideoDocument(const nsACString& aType)
     (MediaDecoder::IsAndroidMediaEnabled() && IsAndroidMediaType(aType)) ||
 #endif
 #ifdef MOZ_FMP4
-    IsMP4SupportedType(aType) ||
+    IsMP4SupportedType(aType) || IsMP3SupportedType(aType) ||
 #endif
 #ifdef MOZ_WMF
     IsWMFSupportedType(aType) ||

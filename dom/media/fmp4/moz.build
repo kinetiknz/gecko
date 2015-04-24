@@ -5,6 +5,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 EXPORTS += [
+    'MP3Decoder.h',
     'MP4Decoder.h',
     'MP4Demuxer.h',
     'MP4Reader.h',
@@ -16,6 +17,7 @@ EXPORTS += [
 
 UNIFIED_SOURCES += [
     'BlankDecoderModule.cpp',
+    'MP3Decoder.cpp',
     'MP4Decoder.cpp',
     'MP4Stream.cpp',
     'PlatformDecoderModule.cpp',
