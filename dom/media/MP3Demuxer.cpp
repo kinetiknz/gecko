@@ -259,18 +259,13 @@ MP3TrackDemuxer::GetEvictionOffset(TimeUnit aTime) {
   return 0;
 }
 
-int64_t
-MP3TrackDemuxer::StreamLength() const {
-  return mSource->GetLength();
-}
-
 TimeUnit
 MP3TrackDemuxer::Duration() const {
   if (!mNumParsedFrames) {
     return TimeUnit::FromMicroseconds(-1);
   }
 
-  const int64_t streamLen = StreamLength();
+  const int64_t streamLen = mSource->GetLength();
   // Assume we know the exact number of frames from the VBR header.
   int64_t numFrames = mParser.VBRInfo().NumFrames();
   if (numFrames < 0) {
@@ -396,11 +391,6 @@ MP3TrackDemuxer::UpdateState(const MediaByteRange& aRange) {
 
 int32_t
 MP3TrackDemuxer::Read(uint8_t* aBuffer, int64_t aOffset, int32_t aSize) {
-  aSize = std::min<int64_t>(aSize, StreamLength() - aOffset);
-  if (aSize <= 0) {
-    return 0;
-  }
-
   uint32_t read = 0;
   const nsresult rv = mSource->ReadAt(aOffset, reinterpret_cast<char*>(aBuffer),
                                       static_cast<uint32_t>(aSize), &read);

@@ -317,8 +317,12 @@ public:
   // Returns initialization success state.
   bool Init();
 
+#ifdef ENABLE_TESTS
   // Returns the total stream length if known, -1 otherwise.
-  int64_t StreamLength() const;
+  int64_t StreamLength() const {
+    return mSource->GetLength();
+  }
+#endif
 
   // Returns the estimated stream duration, or a 0-duration if unknown.
   media::TimeUnit Duration() const;
