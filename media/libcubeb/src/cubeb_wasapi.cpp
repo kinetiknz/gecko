@@ -800,6 +800,27 @@ stream_set_volume(cubeb_stream * stm, float volume)
 
   return CUBEB_OK;
 }
+
+bool
+is_vista_up()
+{
+  OSVERSIONINFOEX info = { sizeof info };
+  GetVersionEx(reinterpret_cast<OSVERSIONINFO*>(&info));
+  if (info.dwMajorVersion <= 5) {
+    return false;
+  }
+  return true;
+}
+
+bool
+load_audioses_dll()
+{
+  static const wchar_t* const kAudiosesDLL = L"%WINDIR%\\system32\\audioses.dll";
+
+  wchar_t path[MAX_PATH] = {0};
+  ExpandEnvironmentStringsW(kAudiosesDLL, path, sizeof(path)/sizeof(path[0]));
+  return (LoadLibraryExW(path, NULL, LOAD_WITH_ALTERED_SEARCH_PATH) != NULL);
+}
 } // namespace anonymous
 
 extern "C" {
@@ -811,6 +832,14 @@ int wasapi_init(cubeb ** context, char const * context_name)
     cubeb_log("wasapi: COM initialization failed during init");
     return CUBEB_ERROR;
   }
+
+  if (getenv("GECKO_FORCE_WASAPI_FAILURE")) {
+    cubeb_log("wasapi: WASAPI force disabled");
+    return CUBEB_ERROR;
+  }
+
+  cubeb_log("wasapi: is_vista_up test: %d", is_vista_up());
+  cubeb_log("wasapi: load_audioses_dll test: %d", load_audioses_dll());
 
   /* We don't use the device yet, but need to make sure we can initialize one
      so that this backend is not incorrectly enabled on platforms that don't
@@ -1037,6 +1066,7 @@ handle_channel_layout(cubeb_stream * stm,  WAVEFORMATEX ** mix_format, const cub
   /* Common case: the hardware is stereo. Up-mixing and down-mixing will be
      handled in the callback. */
   if ((*mix_format)->nChannels <= 2) {
+    cubeb_log("wasapi: handle_channel_layout early exit nChannels=%hu", (*mix_format)->nChannels);
     return;
   }
 
@@ -1046,6 +1076,7 @@ handle_channel_layout(cubeb_stream * stm,  WAVEFORMATEX ** mix_format, const cub
      conversion path instead of trying to make WASAPI do it by itself.
      [1]: http://msdn.microsoft.com/en-us/library/windows/desktop/dd370811%28v=vs.85%29.aspx*/
   if ((*mix_format)->wFormatTag != WAVE_FORMAT_EXTENSIBLE) {
+    cubeb_log("wasapi: handle_channel_layout invalid wFormatTag");
     return;
   }
 
@@ -1080,6 +1111,7 @@ handle_channel_layout(cubeb_stream * stm,  WAVEFORMATEX ** mix_format, const cub
                                               *mix_format,
                                               &closest);
 
+  cubeb_log("wasapi: handle_channel_layout IsFormatSupported: %x closest: %p", hr, closest);
   if (hr == S_FALSE) {
     /* Not supported, but WASAPI gives us a suggestion. Use it, and handle the
        eventual upmix/downmix ourselves */
@@ -1097,6 +1129,20 @@ handle_channel_layout(cubeb_stream * stm,  WAVEFORMATEX ** mix_format, const cub
     LOG("Requested format accepted by WASAPI.\n");
   } else {
     LOG("IsFormatSupported unhandled error: %x\n", hr);
+  }
+}
+
+void dump_format(WAVEFORMATEX * fmt)
+{
+  cubeb_log("wasapi: WAVEFORMATEX(%hu, %hu, %u, %u, %hu, %hu, %hu)",
+            fmt->wFormatTag, fmt->nChannels, fmt->nSamplesPerSec, fmt->nAvgBytesPerSec, fmt->nBlockAlign, fmt->wBitsPerSample, fmt->cbSize);
+
+  if (fmt->wFormatTag == WAVE_FORMAT_EXTENSIBLE) {
+    WAVEFORMATEXTENSIBLE * ext = reinterpret_cast<WAVEFORMATEXTENSIBLE *>(fmt);
+    cubeb_log("wasapi: WAVEFORMATEXTENSIBLE(%hu, %u, {%08lx-%04hx-%04hx-%02hhx%02hhx-%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx})", ext->Samples.wValidBitsPerSample, ext->dwChannelMask,
+              ext->SubFormat.Data1, ext->SubFormat.Data2, ext->SubFormat.Data3,
+              ext->SubFormat.Data4[0], ext->SubFormat.Data4[1], ext->SubFormat.Data4[2], ext->SubFormat.Data4[3],
+              ext->SubFormat.Data4[4], ext->SubFormat.Data4[5], ext->SubFormat.Data4[6], ext->SubFormat.Data4[7]);
   }
 }
 
@@ -1142,7 +1188,11 @@ int setup_wasapi_stream(cubeb_stream * stm)
     return CUBEB_ERROR;
   }
 
+  cubeb_log("wasapi: mix format: %p", mix_format);
+  dump_format(mix_format);
   handle_channel_layout(stm, &mix_format, &stm->stream_params);
+  cubeb_log("wasapi: mix format after handle_channel_layout: %p", mix_format);
+  dump_format(mix_format);
 
   /* Shared mode WASAPI always supports float32 sample format, so this
      is safe. */
