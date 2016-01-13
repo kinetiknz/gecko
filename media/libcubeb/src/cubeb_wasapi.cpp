@@ -715,13 +715,17 @@ HRESULT get_default_endpoint(IMMDevice ** device)
     LOG("Could not get device enumerator: %x\n", hr);
     return hr;
   }
+  ERole role = eMultimedia;
+  if (getenv("GECKO_FORCE_WASAPI_ROLE_CONSOLE")) {
+    role = eConsole;
+  }
   /* eMultimedia is okay for now ("Music, movies, narration, [...]").
      We will need to change this when we distinguish streams by use-case, other
      possible values being eConsole ("Games, system notification sounds [...]")
      and eCommunication ("Voice communication"). */
-  hr = enumerator->GetDefaultAudioEndpoint(eRender, eMultimedia, device);
+  hr = enumerator->GetDefaultAudioEndpoint(eRender, role, device);
   if (FAILED(hr)) {
-    cubeb_log("wasapi: GetDefaultAudioEndpoint(eRender, eMultimedia) failed: %x", hr);
+    cubeb_log("wasapi: GetDefaultAudioEndpoint(eRender, %d) failed: %x", hr, (int) role);
     LOG("Could not get default audio endpoint: %x\n", hr);
     SafeRelease(enumerator);
     return hr;
@@ -839,7 +843,9 @@ int wasapi_init(cubeb ** context, char const * context_name)
   }
 
   cubeb_log("wasapi: is_vista_up test: %d", is_vista_up());
-  cubeb_log("wasapi: load_audioses_dll test: %d", load_audioses_dll());
+  if (!getenv("GECKO_FORCE_WASAPI_SKIP_AUDIOSES")) {
+    cubeb_log("wasapi: load_audioses_dll test: %d", load_audioses_dll());
+  }
 
   /* We don't use the device yet, but need to make sure we can initialize one
      so that this backend is not incorrectly enabled on platforms that don't
