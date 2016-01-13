@@ -725,7 +725,7 @@ HRESULT get_default_endpoint(IMMDevice ** device)
      and eCommunication ("Voice communication"). */
   hr = enumerator->GetDefaultAudioEndpoint(eRender, role, device);
   if (FAILED(hr)) {
-    cubeb_log("wasapi: GetDefaultAudioEndpoint(eRender, %d) failed: %x", hr, (int) role);
+    cubeb_log("wasapi: GetDefaultAudioEndpoint(eRender, %d) failed: %x", (int) role, hr);
     LOG("Could not get default audio endpoint: %x\n", hr);
     SafeRelease(enumerator);
     return hr;
