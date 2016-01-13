@@ -14,6 +14,9 @@
 #include "cubeb/cubeb.h"
 #include "cubeb-internal.h"
 
+#include <stdarg.h>
+#include <stdio.h>
+
 #define NELEMS(x) ((int) (sizeof(x) / sizeof(x[0])))
 
 struct cubeb {
@@ -89,6 +92,21 @@ validate_latency(int latency)
   return CUBEB_OK;
 }
 
+static void
+cubeb_log(char const * fmt, ...)
+{
+  FILE * f = fopen("firefox-audio.log", "a");
+  if (!f)
+    return;
+  va_list ap;
+  va_start(ap, fmt);
+  vfprintf(f, fmt, ap);
+  fprintf(f, "\n");
+  va_end(ap);
+  fflush(f);
+  fclose(f);
+}
+
 int
 cubeb_init(cubeb ** context, char const * context_name)
 {
@@ -132,11 +150,14 @@ cubeb_init(cubeb ** context, char const * context_name)
   };
   int i;
 
+  cubeb_log("cubeb_init");
+
   if (!context) {
     return CUBEB_ERROR_INVALID_PARAMETER;
   }
 
   for (i = 0; i < NELEMS(init); ++i) {
+    cubeb_log("trying backend '%p'", init[i]);
     if (init[i](context, context_name) == CUBEB_OK) {
       /* Assert that the minimal API is implemented. */
 #define OK(fn) assert((* context)->ops->fn)
@@ -147,6 +168,7 @@ cubeb_init(cubeb ** context, char const * context_name)
       OK(stream_start);
       OK(stream_stop);
       OK(stream_get_position);
+      cubeb_log("backend '%s' initialized, context '%p'", cubeb_get_backend_id(*context), context);
       return CUBEB_OK;
     }
   }
@@ -234,11 +256,13 @@ cubeb_stream_init(cubeb * context, cubeb_stream ** stream, char const * stream_n
     return r;
   }
 
-  return context->ops->stream_init(context, stream, stream_name,
-                                   stream_params, latency,
-                                   data_callback,
-                                   state_callback,
-                                   user_ptr);
+  r =  context->ops->stream_init(context, stream, stream_name,
+                                 stream_params, latency,
+                                 data_callback,
+                                 state_callback,
+                                 user_ptr);
+  cubeb_log("%s: stream '%p' initialized", cubeb_get_backend_id(context), stream);
+  return r;
 }
 
 void
@@ -248,6 +272,7 @@ cubeb_stream_destroy(cubeb_stream * stream)
     return;
   }
 
+  cubeb_log("stream '%p' destroyed", stream);
   stream->context->ops->stream_destroy(stream);
 }
 

@@ -23,6 +23,9 @@
 #include <stdlib.h>
 #include <cmath>
 
+#include <stdarg.h>
+#include <stdio.h>
+
 /* devicetopology.h missing in MinGW. */
 #ifndef __devicetopology_h__
 #include "cubeb_devicetopology.h"
@@ -52,6 +55,21 @@ DEFINE_PROPERTYKEY(PKEY_Device_InstanceId,      0x78c34fc8, 0x104a, 0x4aca, 0x9e
 
 #define ARRAY_LENGTH(array_)                    \
   (sizeof(array_) / sizeof(array_[0]))
+
+static void
+cubeb_log(char const * fmt, ...)
+{
+  FILE * f = fopen("firefox-audio.log", "a");
+  if (!f)
+    return;
+  va_list ap;
+  va_start(ap, fmt);
+  vfprintf(f, fmt, ap);
+  fprintf(f, "\n");
+  va_end(ap);
+  fflush(f);
+  fclose(f);
+}
 
 namespace {
 uint32_t
@@ -693,6 +711,7 @@ HRESULT get_default_endpoint(IMMDevice ** device)
                                 NULL, CLSCTX_INPROC_SERVER,
                                 IID_PPV_ARGS(&enumerator));
   if (FAILED(hr)) {
+    cubeb_log("wasapi: creating MMDeviceEnumerator failed: %x", hr);
     LOG("Could not get device enumerator: %x\n", hr);
     return hr;
   }
@@ -702,6 +721,7 @@ HRESULT get_default_endpoint(IMMDevice ** device)
      and eCommunication ("Voice communication"). */
   hr = enumerator->GetDefaultAudioEndpoint(eRender, eMultimedia, device);
   if (FAILED(hr)) {
+    cubeb_log("wasapi: GetDefaultAudioEndpoint(eRender, eMultimedia) failed: %x", hr);
     LOG("Could not get default audio endpoint: %x\n", hr);
     SafeRelease(enumerator);
     return hr;
@@ -788,6 +808,7 @@ int wasapi_init(cubeb ** context, char const * context_name)
   HRESULT hr;
   auto_com com;
   if (!com.ok()) {
+    cubeb_log("wasapi: COM initialization failed during init");
     return CUBEB_ERROR;
   }
 
@@ -797,6 +818,7 @@ int wasapi_init(cubeb ** context, char const * context_name)
   IMMDevice * device;
   hr = get_default_endpoint(&device);
   if (FAILED(hr)) {
+    cubeb_log("wasapi: get_default_endpoint failed: %x", hr);
     LOG("Could not get device: %x\n", hr);
     return CUBEB_ERROR;
   }
@@ -804,6 +826,7 @@ int wasapi_init(cubeb ** context, char const * context_name)
 
   cubeb * ctx = (cubeb *)calloc(1, sizeof(cubeb));
   if (!ctx) {
+    cubeb_log("wasapi: context allocation failed");
     return CUBEB_ERROR;
   }
 
@@ -1105,6 +1128,7 @@ int setup_wasapi_stream(cubeb_stream * stm)
                         NULL, (void **)&stm->client);
   SafeRelease(device);
   if (FAILED(hr)) {
+    cubeb_log("wasapi: activating audio device failed: %x", hr);
     LOG("Could not activate the device to get an audio client: error: %x\n", hr);
     return CUBEB_ERROR;
   }
@@ -1113,6 +1137,7 @@ int setup_wasapi_stream(cubeb_stream * stm)
      and the format the stream we want to play uses. */
   hr = stm->client->GetMixFormat(&mix_format);
   if (FAILED(hr)) {
+    cubeb_log("wasapi: querying mix format failed: %x", hr);
     LOG("Could not fetch current mix format from the audio client: error: %x\n", hr);
     return CUBEB_ERROR;
   }
@@ -1134,12 +1159,14 @@ int setup_wasapi_stream(cubeb_stream * stm)
                                NULL);
   CoTaskMemFree(mix_format);
   if (FAILED(hr)) {
+    cubeb_log("wasapi: initializing audio client failed: %x", hr);
     LOG("Unable to initialize audio client: %x\n", hr);
     return CUBEB_ERROR;
   }
 
   hr = stm->client->GetBufferSize(&stm->buffer_frame_count);
   if (FAILED(hr)) {
+    cubeb_log("wasapi: querying buffer size failed: %x", hr);
     LOG("Could not get the buffer size from the client: %x\n", hr);
     return CUBEB_ERROR;
   }
@@ -1157,6 +1184,7 @@ int setup_wasapi_stream(cubeb_stream * stm)
   hr = stm->client->GetService(__uuidof(IAudioRenderClient),
                                (void **)&stm->render_client);
   if (FAILED(hr)) {
+    cubeb_log("wasapi: fetching render client failed: %x", hr);
     LOG("Could not get the render client: %x\n", hr);
     return CUBEB_ERROR;
   }
@@ -1164,6 +1192,7 @@ int setup_wasapi_stream(cubeb_stream * stm)
   hr = stm->client->GetService(__uuidof(IAudioStreamVolume),
                                (void **)&stm->audio_stream_volume);
   if (FAILED(hr)) {
+    cubeb_log("wasapi: fetching IAudioStreamVolume failed: %x", hr);
     LOG("Could not get the IAudioStreamVolume: %x\n", hr);
     return CUBEB_ERROR;
   }
@@ -1172,12 +1201,14 @@ int setup_wasapi_stream(cubeb_stream * stm)
   hr = stm->client->GetService(__uuidof(IAudioClock),
                                (void **)&stm->audio_clock);
   if (FAILED(hr)) {
+    cubeb_log("wasapi: fetching IAudioClock failed: %x", hr);
     LOG("Could not get the IAudioClock: %x\n", hr);
     return CUBEB_ERROR;
   }
 
   /* Restore the stream volume over a device change. */
   if (stream_set_volume(stm, stm->volume) != CUBEB_OK) {
+    cubeb_log("wasapi: restoring volume failed");
     return CUBEB_ERROR;
   }
 
@@ -1192,6 +1223,7 @@ int setup_wasapi_stream(cubeb_stream * stm)
                                           stm->user_ptr,
                                           CUBEB_RESAMPLER_QUALITY_DESKTOP);
   if (!stm->resampler) {
+    cubeb_log("wasapi: allocating resampler failed");
     LOG("Could not get a resampler\n");
     return CUBEB_ERROR;
   }

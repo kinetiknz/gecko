@@ -20,6 +20,9 @@
 #include "cubeb/cubeb.h"
 #include "cubeb-internal.h"
 
+#include <stdarg.h>
+#include <stdio.h>
+
 /* This is missing from the MinGW headers. Use a safe fallback. */
 #if !defined(MEMORY_ALLOCATION_ALIGNMENT)
 #define MEMORY_ALLOCATION_ALIGNMENT 16
@@ -68,6 +71,21 @@
 
 #define CUBEB_STREAM_MAX 32
 #define NBUFS 4
+
+static void
+cubeb_log(char const * fmt, ...)
+{
+  FILE * f = fopen("firefox-audio.log", "a");
+  if (!f)
+    return;
+  va_list ap;
+  va_start(ap, fmt);
+  vfprintf(f, fmt, ap);
+  fprintf(f, "\n");
+  va_end(ap);
+  fflush(f);
+  fclose(f);
+}
 
 const GUID KSDATAFORMAT_SUBTYPE_PCM =
 { 0x00000001, 0x0000, 0x0010, { 0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71 } };
@@ -321,12 +339,14 @@ winmm_init(cubeb ** context, char const * context_name)
 
   ctx->event = CreateEvent(NULL, FALSE, FALSE, NULL);
   if (!ctx->event) {
+    cubeb_log("winmm: creating thread event failed");
     winmm_destroy(ctx);
     return CUBEB_ERROR;
   }
 
   ctx->thread = (HANDLE) _beginthreadex(NULL, 256 * 1024, winmm_buffer_thread, ctx, STACK_SIZE_PARAM_IS_A_RESERVATION, NULL);
   if (!ctx->thread) {
+    cubeb_log("winmm: creating audio thread failed");
     winmm_destroy(ctx);
     return CUBEB_ERROR;
   }
@@ -435,6 +455,7 @@ winmm_stream_init(cubeb * context, cubeb_stream ** stream, char const * stream_n
      many streams are active at once, a subset of them will not consume (via
      playback) or release (via waveOutReset) their buffers. */
   if (context->active_streams >= CUBEB_STREAM_MAX) {
+    cubeb_log("winmm: stream limit reached");
     LeaveCriticalSection(&context->lock);
     return CUBEB_ERROR;
   }
@@ -469,6 +490,7 @@ winmm_stream_init(cubeb * context, cubeb_stream ** stream, char const * stream_n
 
   stm->event = CreateEvent(NULL, FALSE, FALSE, NULL);
   if (!stm->event) {
+    cubeb_log("winmm: creating stream event failed");
     winmm_stream_destroy(stm);
     return CUBEB_ERROR;
   }
@@ -481,12 +503,14 @@ winmm_stream_init(cubeb * context, cubeb_stream ** stream, char const * stream_n
                   (DWORD_PTR) winmm_buffer_callback, (DWORD_PTR) stm,
                   CALLBACK_FUNCTION);
   if (r != MMSYSERR_NOERROR) {
+    cubeb_log("winmm: waveOutOpen failed: %x", r);
     winmm_stream_destroy(stm);
     return CUBEB_ERROR;
   }
 
   r = waveOutPause(stm->waveout);
   if (r != MMSYSERR_NOERROR) {
+    cubeb_log("winmm: waveOutPause failed: %x", r);
     winmm_stream_destroy(stm);
     return CUBEB_ERROR;
   }
@@ -502,6 +526,7 @@ winmm_stream_init(cubeb * context, cubeb_stream ** stream, char const * stream_n
 
     r = waveOutPrepareHeader(stm->waveout, hdr, sizeof(*hdr));
     if (r != MMSYSERR_NOERROR) {
+      cubeb_log("winmm: waveOutPrepareHeader failed: %x", r);
       winmm_stream_destroy(stm);
       return CUBEB_ERROR;
     }
