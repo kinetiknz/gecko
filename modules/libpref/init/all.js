@@ -634,6 +634,9 @@ pref("media.decoder.skip-to-next-key-frame.enabled", true);
 // "verbose", "normal" and "" (log disabled).
 pref("media.cubeb.logging_level", "");
 
+// Cubeb remoting (sandbox) control
+pref("media.cubeb.sandbox", true);
+
 // Set to true to force demux/decode warnings to be treated as errors.
 pref("media.playback.warnings-as-errors", false);
 
