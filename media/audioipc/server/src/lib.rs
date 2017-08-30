@@ -59,7 +59,7 @@ impl cubeb::StreamCallback for Callback {
     type Frame = u8;
 
     fn data_callback(&mut self, input: &[u8], output: &mut [u8]) -> isize {
-        info!("Stream data callback: {} {}", input.len(), output.len());
+        trace!("Stream data callback: {} {}", input.len(), output.len());
 
         // len is of input and output is frame len. Turn these into the real lengths.
         let real_input = unsafe {
@@ -68,7 +68,7 @@ impl cubeb::StreamCallback for Callback {
         };
         let real_output = unsafe {
             let size_bytes = output.len() * self.output_frame_size as usize;
-            info!("Resize output to {}", size_bytes);
+            trace!("Resize output to {}", size_bytes);
             slice::from_raw_parts_mut(output.as_mut_ptr(), size_bytes)
         };
 
@@ -101,6 +101,7 @@ impl cubeb::StreamCallback for Callback {
 
     fn state_callback(&mut self, state: cubeb::State) {
         info!("Stream state callback: {:?}", state);
+        // TODO: Share this conversion with the same code in cubeb-rs?
         let state = match state {
             cubeb::State::Started => ffi::CUBEB_STATE_STARTED,
             cubeb::State::Stopped => ffi::CUBEB_STATE_STOPPED,
@@ -108,14 +109,20 @@ impl cubeb::StreamCallback for Callback {
             cubeb::State::Error => ffi::CUBEB_STATE_ERROR,
         };
         self.connection.send(ClientMessage::StreamStateCallback(state)).unwrap();
+        let r = self.connection.receive();
+        match r {
+            Ok(ServerMessage::StreamStateCallback) => (),
+            _ => debug!("Unexpected message {:?} during callback", r),
+        };
     }
 }
 
 impl Drop for Callback {
     fn drop(&mut self) {
-        self.connection
-            .send(ClientMessage::StreamDestroyed)
-            .unwrap();
+        let r = self.connection.send(ClientMessage::StreamDestroyed);
+        if r.is_err() {
+            debug!("Callback::drop failed to send StreamDestroyed = {:?}", r);
+        }
     }
 }
 
@@ -148,7 +155,7 @@ impl ServerConn {
 
     fn process(&mut self, poll: &mut mio::Poll, context: &Result<Option<cubeb::Context>>) -> Result<()> {
         let r = self.connection.receive();
-        info!("ServerConn::process: got {:?}", r);
+        trace!("ServerConn::process: got {:?}", r);
 
         if let &Ok(Some(ref ctx)) = context {
             // TODO: Might need a simple state machine to deal with
@@ -539,11 +546,11 @@ impl Server {
                     bail!("quit");
                 },
                 token => {
-                    debug!("token {:?} ready", token);
+                    trace!("token {:?} ready", token);
 
                     let r = self.conns[token].process(poll, &self.context);
 
-                    debug!("got {:?}", r);
+                    trace!("got {:?}", r);
 
                     // TODO: Handle disconnection etc.
                     // TODO: Should be handled at a higher level by a

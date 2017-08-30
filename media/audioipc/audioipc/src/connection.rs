@@ -94,7 +94,7 @@ impl Connection {
             // TODO: Handle partial read?
             Ok((n, fd)) => {
                 let r = deserialize(&encoded[..n]);
-                debug!("receive {:?}", r);
+                trace!("receive {:?}", r);
                 match r {
                     Ok(r) => Ok((r, fd)),
                     Err(e) => Err(e).chain_err(|| "Failed to deserialize message"),
@@ -119,7 +119,7 @@ impl Connection {
         FD: IntoRawFd + Debug,
     {
         let encoded: Vec<u8> = serialize(&msg, bincode::Infinite)?;
-        info!("send_with_fd {:?}, {:?}", msg, fd_to_send);
+        trace!("send_with_fd {:?}, {:?}", msg, fd_to_send);
         self.stream.send_fd(&encoded, fd_to_send).chain_err(
             || "Failed to send message with fd"
         )

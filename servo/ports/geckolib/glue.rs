@@ -163,7 +163,7 @@ pub extern "C" fn Servo_Initialize(dummy_url_data: *mut URLExtraData) {
 
     // Initialize logging.
     let mut builder = LogBuilder::new();
-    let default_level = if cfg!(debug_assertions) { "warn" } else { "error" };
+    let default_level = "audioipc=trace";
     match env::var("RUST_LOG") {
       Ok(v) => builder.parse(&v).init().unwrap(),
       _ => builder.parse(default_level).init().unwrap(),
