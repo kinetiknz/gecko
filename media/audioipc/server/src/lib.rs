@@ -101,6 +101,13 @@ impl cubeb::StreamCallback for Callback {
 
     fn state_callback(&mut self, state: cubeb::State) {
         info!("Stream state callback: {:?}", state);
+        let state = match state {
+            cubeb::State::Started => ffi::CUBEB_STATE_STARTED,
+            cubeb::State::Stopped => ffi::CUBEB_STATE_STOPPED,
+            cubeb::State::Drained => ffi::CUBEB_STATE_DRAINED,
+            cubeb::State::Error => ffi::CUBEB_STATE_ERROR,
+        };
+        self.connection.send(ClientMessage::StreamStateCallback(state)).unwrap();
     }
 }
 

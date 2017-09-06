@@ -169,8 +169,8 @@ impl Context for ClientContext {
 
 impl Drop for ClientContext {
     fn drop(&mut self) {
-        info!("ClientContext drop...");
         let mut conn = self.connection();
+        info!("ClientContext drop...");
         let _: Result<()> = send_recv!(conn, ClientDisconnect => ClientDisconnected);
     }
 }
