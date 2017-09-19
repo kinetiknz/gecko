@@ -6,12 +6,13 @@ description = "Remote cubeb server"
 
 [dependencies]
 audioipc = { path = "../audioipc" }
+bytes = "0.4"
 cubeb = { path = "../../cubeb-rs/cubeb-api" }
 cubeb-core = { path = "../../cubeb-rs/cubeb-core" }
 error-chain = "0.10.0"
-lazycell = "^0.4"
-log = "^0.3.6"
-mio = "0.6.7"
-mio-uds = "0.6.4"
+lazycell = "0.4"
+log = "0.3.6"
+mio = "=0.6.9"
+mio-uds = "=0.6.4"
 slab = "0.3.0"
 

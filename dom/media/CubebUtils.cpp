@@ -512,7 +512,9 @@ void ShutdownLibrary()
   sCubebState = CubebState::Shutdown;
 
 #ifdef MOZ_CUBEB_REMOTING
-  ShutdownSoundServer();
+  if (XRE_IsParentProcess()) {
+    ShutdownSoundServer();
+  }
 #endif
 }
 
