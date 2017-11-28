@@ -55,9 +55,10 @@
 extern "C" {
 // These functions are provided by audioipc-server crate
 extern void* audioipc_server_start();
+extern int audioipc_server_new_client(void*);
 extern void audioipc_server_stop(void*);
 // These functions are provided by audioipc-client crate
-extern int audioipc_client_init(cubeb**, const char*);
+extern int audioipc_client_init(cubeb**, const char*, int);
 }
 
 namespace mozilla {
@@ -398,7 +399,7 @@ cubeb* GetCubebContextUnlocked()
   MOZ_LOG(gCubebLog, LogLevel::Info, ("%s: %s", PREF_CUBEB_SANDBOX, sCubebSandbox ? "true" : "false"));
 
   int rv = sCubebSandbox
-    ? audioipc_client_init(&sCubebContext, sBrandName)
+    ? audioipc_client_init(&sCubebContext, sBrandName, -1)
     : cubeb_init(&sCubebContext, sBrandName, sCubebBackendName.get());
 #else // !MOZ_CUBEB_REMOTING
   int rv = cubeb_init(&sCubebContext, sBrandName, sCubebBackendName.get());
