@@ -8,6 +8,7 @@
 
 #include "MediaInfo.h"
 #include "mozilla/AbstractThread.h"
+#include "mozilla/dom/ContentChild.h"
 #include "mozilla/Logging.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
@@ -69,6 +70,9 @@ namespace {
 ////////////////////////////////////////////////////////////////////////////////
 // Cubeb Sound Server Thread
 void* sServerHandle = nullptr;
+
+// Initialized during early startup, protected by sMutex.
+int sIPCConnection = -1;
 
 static bool
 StartSoundServer()
@@ -379,6 +383,26 @@ void InitBrandName()
   sBrandName[ascii.Length()] = 0;
 }
 
+void SetAudioIPCConnection(int aFD)
+{
+#ifdef MOZ_CUBEB_REMOTING
+  StaticMutexAutoLock lock(sMutex);
+  MOZ_ASSERT(sIPCConnection == -1);
+  sIPCConnection = aFD;
+#else
+  MOZ_ASSERT(false);
+#endif
+}
+
+#ifdef MOZ_CUBEB_REMOTING
+void InitAudioIPCConnection()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  auto contentChild = dom::ContentChild::GetSingleton();
+  Unused << contentChild->SendRequestAudioIPCConnection();
+}
+#endif
+
 cubeb* GetCubebContextUnlocked()
 {
   sMutex.AssertCurrentThreadOwns();
@@ -396,10 +420,12 @@ cubeb* GetCubebContextUnlocked()
   }
 
 #ifdef MOZ_CUBEB_REMOTING
+  MOZ_ASSERT(sIPCConnection != -1);
+
   MOZ_LOG(gCubebLog, LogLevel::Info, ("%s: %s", PREF_CUBEB_SANDBOX, sCubebSandbox ? "true" : "false"));
 
   int rv = sCubebSandbox
-    ? audioipc_client_init(&sCubebContext, sBrandName, -1)
+    ? audioipc_client_init(&sCubebContext, sBrandName, sIPCConnection)
     : cubeb_init(&sCubebContext, sBrandName, sCubebBackendName.get());
 #else // !MOZ_CUBEB_REMOTING
   int rv = cubeb_init(&sCubebContext, sBrandName, sCubebBackendName.get());
@@ -492,6 +518,12 @@ void InitLibrary()
 #ifndef MOZ_WIDGET_ANDROID
   AbstractThread::MainThread()->Dispatch(
     NS_NewRunnableFunction("CubebUtils::InitLibrary", &InitBrandName));
+#endif
+#ifdef MOZ_CUBEB_REMOTING
+  if (XRE_IsContentProcess()) {
+    AbstractThread::MainThread()->Dispatch(
+      NS_NewRunnableFunction("CubebUtils::InitLibrary", &InitAudioIPCConnection));
+  }
 #endif
 }
 
@@ -668,6 +700,16 @@ void GetDeviceCollection(nsTArray<RefPtr<AudioDeviceInfo>>& aDeviceInfos,
     }
     cubeb_device_collection_destroy(context, &collection);
   }
+}
+
+int CreateAudioIPCConnection()
+{
+#ifdef MOZ_CUBEB_REMOTING
+  MOZ_ASSERT(sServerHandle);
+  return audioipc_server_new_client(sServerHandle);
+#else
+  return -1;
+#endif
 }
 
 } // namespace CubebUtils

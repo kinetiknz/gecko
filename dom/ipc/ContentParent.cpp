@@ -262,6 +262,8 @@
 #include "mozilla/CodeCoverageHandler.h"
 #endif
 
+#include "CubebUtils.h"
+
 // For VP9Benchmark::sBenchmarkFpsPref
 #include "Benchmark.h"
 
@@ -4155,6 +4157,25 @@ ContentParent::RecvRequestAnonymousTemporaryFile(const uint64_t& aID)
   }
 
   rv = NS_OK;
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult
+ContentParent::RecvRequestAudioIPCConnection()
+{
+  int rawFD = CubebUtils::CreateAudioIPCConnection();
+  FileDescOrError fd;
+  if (rawFD >= 0) {
+    fd = FileDescriptor(rawFD);
+    // FileDescriptor creates a duplicate of the file handle; we must
+    // close the original.
+    close(rawFD);
+  } else {
+    fd = NS_ERROR_FAILURE;
+  }
+
+  Unused << SendProvideAudioIPCConnection(fd);
+
   return IPC_OK();
 }
 
