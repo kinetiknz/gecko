@@ -54,7 +54,6 @@ void GetPreferredChannelLayout(nsAString& aLayout);
 void GetDeviceCollection(nsTArray<RefPtr<AudioDeviceInfo>>& aDeviceInfos,
                          Side aSide);
 int CreateAudioIPCConnection();
-void SetAudioIPCConnection(int aFD);
 } // namespace CubebUtils
 } // namespace mozilla
 

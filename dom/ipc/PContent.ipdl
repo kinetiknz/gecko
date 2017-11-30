@@ -608,8 +608,6 @@ child:
 
     async PIPCBlobInputStream(nsID aID, uint64_t aSize);
 
-    async ProvideAudioIPCConnection(FileDescOrError aFD);
-
     /**
      * This call takes the set of plugins loaded in the chrome process, and
      * sends them to the content process. However, in many cases this set will
@@ -764,6 +762,8 @@ parent:
 
     async PPresentation();
 
+    async CreateAudioIPCConnection() returns (FileDescriptor fd);
+
     sync PURLClassifier(Principal principal, bool useTrackingProtection)
         returns (bool success);
     sync ClassifyLocal(URIParams uri, nsCString tables)
@@ -908,8 +908,6 @@ parent:
     async BackUpXResources(FileDescriptor aXSocketFd);
 
     async RequestAnonymousTemporaryFile(uint64_t aID);
-
-    async RequestAudioIPCConnection();
 
     /**
      * Keygen requires us to call it after a <keygen> element is parsed and

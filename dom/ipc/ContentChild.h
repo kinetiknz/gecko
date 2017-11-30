@@ -217,12 +217,6 @@ public:
   virtual bool
   DeallocPIPCBlobInputStreamChild(PIPCBlobInputStreamChild* aActor) override;
 
-  virtual mozilla::ipc::IPCResult
-  RecvProvideAudioIPCConnection(const FileDescOrError& aFD) override;
-
-  typedef std::function<void(int)> AudioIPCConnectionCallback;
-  nsresult AsyncOpenAudioIPCConnection(const AudioIPCConnectionCallback& aCallback);
-
   virtual PHalChild* AllocPHalChild() override;
   virtual bool DeallocPHalChild(PHalChild*) override;
 

@@ -4161,21 +4161,18 @@ ContentParent::RecvRequestAnonymousTemporaryFile(const uint64_t& aID)
 }
 
 mozilla::ipc::IPCResult
-ContentParent::RecvRequestAudioIPCConnection()
+ContentParent::RecvCreateAudioIPCConnection(CreateAudioIPCConnectionResolver&& aResolver)
 {
   int rawFD = CubebUtils::CreateAudioIPCConnection();
-  FileDescOrError fd;
-  if (rawFD >= 0) {
-    fd = FileDescriptor(rawFD);
-    // FileDescriptor creates a duplicate of the file handle; we must
-    // close the original.
-    close(rawFD);
-  } else {
-    fd = NS_ERROR_FAILURE;
+  if (rawFD < 0) {
+    return IPC_FAIL(this, "CubebUtils::CreateAudioIPCConnection failed");
   }
 
-  Unused << SendProvideAudioIPCConnection(fd);
-
+  FileDescriptor fd = FileDescriptor(rawFD);
+  // FileDescriptor creates a duplicate of the file handle; we must close
+  // the original.
+  close(rawFD);
+  aResolver(Move(fd));
   return IPC_OK();
 }
 

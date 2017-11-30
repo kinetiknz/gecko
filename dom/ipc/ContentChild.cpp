@@ -94,7 +94,6 @@
 #include "mozilla/Sandbox.h"
 #endif
 #endif
-#include "CubebUtils.h"
 
 #include "mozilla/Unused.h"
 
@@ -1852,19 +1851,6 @@ bool
 ContentChild::DeallocPIPCBlobInputStreamChild(PIPCBlobInputStreamChild* aActor)
 {
   return nsIContentChild::DeallocPIPCBlobInputStreamChild(aActor);
-}
-
-mozilla::ipc::IPCResult
-ContentChild::RecvProvideAudioIPCConnection(const FileDescOrError& aFDOrError)
-{
-  if (aFDOrError.type() == FileDescOrError::Tnsresult) {
-    DebugOnly<nsresult> rv = aFDOrError.get_nsresult();
-    MOZ_ASSERT(NS_FAILED(rv));
-  } else {
-    auto rawFD = aFDOrError.get_FileDescriptor().ClonePlatformHandle();
-    CubebUtils::SetAudioIPCConnection(rawFD.release());
-  }
-  return IPC_OK();
 }
 
 mozilla::PRemoteSpellcheckEngineChild *

@@ -9,6 +9,7 @@
 #include "MediaInfo.h"
 #include "mozilla/AbstractThread.h"
 #include "mozilla/dom/ContentChild.h"
+#include "mozilla/ipc/FileDescriptor.h"
 #include "mozilla/Logging.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
@@ -383,23 +384,22 @@ void InitBrandName()
   sBrandName[ascii.Length()] = 0;
 }
 
-void SetAudioIPCConnection(int aFD)
-{
-#ifdef MOZ_CUBEB_REMOTING
-  StaticMutexAutoLock lock(sMutex);
-  MOZ_ASSERT(sIPCConnection == -1);
-  sIPCConnection = aFD;
-#else
-  MOZ_ASSERT(false);
-#endif
-}
-
 #ifdef MOZ_CUBEB_REMOTING
 void InitAudioIPCConnection()
 {
   MOZ_ASSERT(NS_IsMainThread());
   auto contentChild = dom::ContentChild::GetSingleton();
-  Unused << contentChild->SendRequestAudioIPCConnection();
+  auto promise = contentChild->SendCreateAudioIPCConnection();
+  promise->Then(AbstractThread::GetCurrent(),
+                __func__,
+                [](ipc::FileDescriptor aFD) {
+                  StaticMutexAutoLock lock(sMutex);
+                  MOZ_ASSERT(sIPCConnection == -1);
+                  sIPCConnection = aFD.ClonePlatformHandle().release();
+                },
+                [](mozilla::ipc::ResponseRejectReason aReason) {
+                  // handle send failure
+                });
 }
 #endif
 
@@ -523,6 +523,11 @@ void InitLibrary()
   if (XRE_IsContentProcess()) {
     AbstractThread::MainThread()->Dispatch(
       NS_NewRunnableFunction("CubebUtils::InitLibrary", &InitAudioIPCConnection));
+  } else if (XRE_IsParentProcess()) {
+    // TODO: Don't use audio IPC when within the same process.
+    StaticMutexAutoLock lock(sMutex);
+    MOZ_ASSERT(sIPCConnection == -1);
+    sIPCConnection = CreateAudioIPCConnection();
   }
 #endif
 }
